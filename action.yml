@@ -1,0 +1,57 @@
+name: 'Fluid Attacks SECRET_SCAN'
+description: 'Run Secret Scaning with Fluid Attacks scanner'
+author: 'Fluid Attacks'
+
+branding:
+  icon: 'shield'
+  color: 'red'
+
+outputs:
+  sarif_file:
+    description: 'Path to SARIF results file (if SARIF format selected)'
+    value: ${{ steps.scan.outputs.sarif_file }}
+  vulnerabilities_found:
+    description: 'Whether vulnerabilities were found (true/false)'
+    value: ${{ steps.scan.outputs.vulnerabilities_found }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Resolve config and mode
+      id: resolve
+      shell: bash
+      run: |
+        if [[ ! -f ".fa-secrets.yaml" ]]; then
+          echo "::error::Config file .fa-secrets.yaml not found in repository root."
+          exit 1
+        fi
+
+        DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
+        CURRENT_BRANCH="${GITHUB_REF#refs/heads/}"
+
+        if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+          echo "mode=diff" >> "${GITHUB_OUTPUT}"
+          echo "base_sha=${{ github.event.pull_request.base.sha }}" >> "${GITHUB_OUTPUT}"
+        elif [[ "${CURRENT_BRANCH}" == "${DEFAULT_BRANCH}" ]]; then
+          echo "mode=full" >> "${GITHUB_OUTPUT}"
+        else
+          echo "mode=diff" >> "${GITHUB_OUTPUT}"
+          echo "base_sha=$(git rev-parse origin/${DEFAULT_BRANCH})" >> "${GITHUB_OUTPUT}"
+        fi
+
+    - name: Get changed files
+      if: steps.resolve.outputs.mode == 'diff'
+      id: changed
+      uses: tj-actions/changed-files@v46
+      with:
+        base_sha: ${{ steps.resolve.outputs.base_sha }}
+        separator: ' '
+
+    - name: Run scan
+      id: scan
+      shell: bash
+      run: |
+        bash "${{ github.action_path }}/generate-config.sh"
+      env:
+        INPUT_MODE: ${{ steps.resolve.outputs.mode }}
+        CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
