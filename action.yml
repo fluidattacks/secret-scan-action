@@ -1,5 +1,5 @@
-name: 'Fluid Attacks SECRET_SCAN'
-description: 'Run Secret Scaning with Fluid Attacks scanner'
+name: 'Fluid Attacks SECRETS SCAN'
+description: 'Find leaked secrets with Fluid Attacks scanner'
 author: 'Fluid Attacks'
 
 branding:

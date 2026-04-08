@@ -28,7 +28,7 @@ jobs:
           # so only changed files are analyzed on branches and PRs
           fetch-depth: 0
 
-      - uses: fluidattacks/secret-scan-action@latest
+      - uses: fluidattacks/secret-scan-action@main
         id: scan
 
       - name: Upload results to GitHub Security tab
@@ -46,6 +46,7 @@ No configuration file is required. By default the action scans your entire repos
 
 - A GitHub repository (public or private).
 - GitHub Actions enabled on the repository.
+- A **Linux runner** (`ubuntu-latest` or equivalent) — the action requires Docker, which is only available on Linux-hosted runners.
 - No account, token, or API key is needed. The action is 100% open source.
 
 ## How it works
