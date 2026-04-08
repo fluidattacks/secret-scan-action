@@ -21,11 +21,6 @@ runs:
       id: resolve
       shell: bash
       run: |
-        if [[ ! -f ".fa-secrets.yaml" ]]; then
-          echo "::error::Config file .fa-secrets.yaml not found in repository root."
-          exit 1
-        fi
-
         DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
         CURRENT_BRANCH="${GITHUB_REF#refs/heads/}"
 

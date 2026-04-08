@@ -5,26 +5,7 @@ No account, API key, or registration required.
 
 ## Quick Start (2 minutes)
 
-You only need to do two things to start scanning your code for secrets:
-
-### 1. Create the configuration file
-
-Add a file called `.fa-secrets.yaml` in the root of your repository:
-
-```yaml
-language: EN
-strict: true
-output:
-  file_path: results.sarif
-  format: SARIF
-sniffs:
-  include:
-    - .
-```
-
-That's it for configuration. This minimal setup will scan your entire repository.
-
-### 2. Create the GitHub Actions workflow
+### Create the GitHub Actions workflow
 
 Add the file `.github/workflows/fa-secrets.yml` to your repository:
 
@@ -57,7 +38,9 @@ jobs:
           sarif_file: ${{ steps.scan.outputs.sarif_file }}
 ```
 
-Commit both files, push, and the scan will run automatically. Results will appear in the **Security** tab of your repository under **Code scanning alerts**.
+Commit the file, push, and the scan will run automatically. Results will appear in the **Security** tab of your repository under **Code scanning alerts**.
+
+No configuration file is required. By default the action scans your entire repository and writes results to `.fluidattacks-secret-scan-results.sarif`.
 
 ## Prerequisites
 
@@ -69,7 +52,7 @@ Commit both files, push, and the scan will run automatically. Results will appea
 
 ### Default branch detection
 
-The action automatically detects your repository's default branch by running `git remote show origin`. This means it works with any branch name — `main`, `master`, `trunk`, `develop`, or whatever your team uses. You don't need to configure the branch name anywhere in `.fa-secrets.yaml`.
+The action automatically detects your repository's default branch by running `git remote show origin`. This means it works with any branch name — `main`, `master`, `trunk`, `develop`, or whatever your team uses.
 
 ### Scan types
 
@@ -97,18 +80,52 @@ After the workflow runs, you can see the results in two places:
 
 3. **SARIF file** — The raw results are also available as a SARIF file artifact if you need to process them with other tools.
 
-## Configuration reference
+## Configuration
 
-All settings go in `.fa-secrets.yaml` at the root of your repository.
+The action optionally reads a `.fluidattacks.yaml` file at the root of your repository. Only the `sniffs` and `output` keys are used by this action.
+
+```yaml
+sniffs:
+  include:
+    - .          # paths to scan (default: entire repo)
+  exclude:
+    - tests/     # paths to skip
+
+output:
+  file_path: .fluidattacks-secret-scan-results.sarif
+  format: SARIF
+```
+
+If `.fluidattacks.yaml` is absent or the keys are omitted, the action falls back to the defaults described below.
+
+### `sniffs.include`
+
+A list of paths (files or directories) to scan.
+
+- **Full scan**: uses this list, defaulting to `.` (entire repository) if not set.
+- **Differential scan**: always uses the list of changed files, regardless of this setting.
+
+### `sniffs.exclude`
+
+A list of paths to exclude from the scan. Applied in both full and differential modes.
+
+### `output`
+
+Controls the results file written to the repository workspace.
+
+| Field | Default | Description |
+|---|---|---|
+| `file_path` | `.fluidattacks-secret-scan-results.sarif` | Path to the results file |
+| `format` | `SARIF` | Output format (`SARIF` or `CSV`) |
 
 ## Action outputs
 
 | Output | Description |
 |---|---|
-| `sarif_file` | Path to the SARIF results file (when format is `SARIF`) |
+| `sarif_file` | Path to the SARIF results file |
 | `vulnerabilities_found` | `true` if any vulnerabilities were detected, `false` otherwise |
 
-You can use these outputs in subsequent workflow steps. For example, to add a conditional step:
+You can use these outputs in subsequent workflow steps. For example:
 
 ```yaml
 - name: Comment on PR
@@ -131,19 +148,7 @@ sniffs:
     - services/legacy/
 ```
 
-### Strict mode: block merges with vulnerabilities
-
-Set `strict: true` to make the action fail when vulnerabilities are found. Combined with branch protection rules, this prevents vulnerable code from being merged:
-
-```yaml
-strict: true
-```
-
-Then, in your repository settings, enable **Require status checks to pass before merging** and select the SECRET_SCAN check.
-
 ### Export results as CSV
-
-If you want a CSV report instead of (or in addition to) SARIF:
 
 ```yaml
 output:
@@ -155,23 +160,15 @@ output:
 
 ### The scan runs but no results appear in the Security tab
 
-Make sure the "Upload SARIF" step is included in your workflow and uses `if: always()` so it runs even if the scan finds vulnerabilities with `strict: true`.
+Make sure the "Upload SARIF" step is included in your workflow and uses `if: always()` so it runs even if the scan finds vulnerabilities.
 
 ### The differential scan analyzes all files instead of just changes
 
 Verify that `fetch-depth: 0` is set in the `actions/checkout` step. Without full git history, the action cannot determine which files changed.
 
-### I don't have a `.fa-secrets.yaml` file
-
-The action requires this configuration file. Without it, the action will fail. Use the minimal configuration shown in the Quick Start section to get started.
-
 ### The action doesn't detect my default branch
 
 The action runs `git remote show origin` to detect the default branch. This requires `fetch-depth: 0` in the checkout step so the remote metadata is available. If detection fails, verify that the `origin` remote is correctly configured in your repository.
-
-### The pipeline fails unexpectedly
-
-If `strict: true` is set, the pipeline will fail whenever vulnerabilities are found. This is intentional. Set `strict: false` if you want the scan to report vulnerabilities without failing the pipeline.
 
 ## More information
 
