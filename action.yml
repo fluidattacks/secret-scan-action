@@ -1,4 +1,4 @@
-name: 'Fluid Attacks SECRETS SCAN'
+name: 'Fluid Attacks Secrets Scan'
 description: 'Find leaked secrets with Fluid Attacks scanner'
 author: 'Fluid Attacks'
 
