@@ -40,7 +40,7 @@ runs:
       uses: tj-actions/changed-files@v46
       with:
         base_sha: ${{ steps.resolve.outputs.base_sha }}
-        separator: ' '
+        separator: "\n"
 
     - name: Run scan
       id: scan

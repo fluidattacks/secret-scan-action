@@ -20,7 +20,7 @@ fa_config_path = os.environ.get('FA_CONFIG', '')
 mode = os.environ['INPUT_MODE']
 namespace = os.environ['GITHUB_REPOSITORY']
 
-cfg_include = ["."]
+cfg_include = ['.']
 cfg_exclude = None
 cfg_output = {'format': 'SARIF', 'file_path': '.fluidattacks-secret-scan-results.sarif'}
 
@@ -28,8 +28,10 @@ if os.path.isfile(fa_config_path):
     with open(fa_config_path) as f:
         fa_cfg = yaml.safe_load(f) or {}
     sniffs = fa_cfg.get('sniffs') or {}
-    cfg_include = sniffs.get('include')
-    cfg_exclude = sniffs.get('exclude')
+    if 'include' in sniffs:
+        cfg_include = sniffs['include']
+    if 'exclude' in sniffs:
+        cfg_exclude = sniffs['exclude']
     if fa_cfg.get('output'):
         cfg_output = fa_cfg['output']
 
@@ -37,7 +39,7 @@ config = {'namespace': namespace}
 sniffs = {}
 
 if mode == 'diff':
-    sniffs['include'] = os.environ['CHANGED_FILES'].split()
+    sniffs['include'] = os.environ['CHANGED_FILES'].splitlines()
 elif cfg_include is not None:
     sniffs['include'] = cfg_include
 
