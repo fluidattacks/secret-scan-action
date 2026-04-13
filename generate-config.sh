@@ -2,7 +2,7 @@
 set -euo pipefail
 
 CONFIG_FILE="/tmp/secret-scanner-config.yaml"
-FA_CONFIG="${GITHUB_WORKSPACE}/.fluidattacks.yaml"
+export FA_CONFIG="${GITHUB_WORKSPACE}/.fluidattacks.yaml"
 
 check_changed_files() {
   if [[ ${INPUT_MODE} == "diff" && -z "${CHANGED_FILES}" ]]; then
@@ -25,6 +25,7 @@ cfg_exclude = None
 cfg_output = {'format': 'SARIF', 'file_path': '.fluidattacks-secret-scan-results.sarif'}
 
 if os.path.isfile(fa_config_path):
+    print(f'::notice::Reading config from {fa_config_path}')
     with open(fa_config_path) as f:
         fa_cfg = yaml.safe_load(f) or {}
     sniffs = fa_cfg.get('sniffs') or {}
@@ -34,6 +35,8 @@ if os.path.isfile(fa_config_path):
         cfg_exclude = sniffs['exclude']
     if fa_cfg.get('output'):
         cfg_output = fa_cfg['output']
+else:
+    print(f'::notice::No config file found at {fa_config_path}, using defaults')
 
 config = {'namespace': namespace}
 sniffs = {}
@@ -53,7 +56,7 @@ config['output'] = cfg_output
 
 with open('${CONFIG_FILE}', 'w') as f:
     yaml.dump(config, f, default_flow_style=False, sort_keys=False)
-" FA_CONFIG="${FA_CONFIG}"
+"
 }
 
 run_scan() {
