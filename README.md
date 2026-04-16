@@ -24,17 +24,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Required: full history enables differential scanning
-          # so only changed files are analyzed on branches and PRs
+          # Required for differential scanning (default mode).
+          # Can be omitted if scanner_mode: full is set.
           fetch-depth: 0
 
       - uses: fluidattacks/secret-scan-action@main
         id: scan
 ```
 
-Commit the file, push, and the scan will run automatically. Results will appear in the **Security** tab of your repository under **Code scanning alerts**.
-
-No configuration file is required. By default the action scans your entire repository and writes results to `.fluidattacks-secret-scan-results.sarif`.
+Commit the file, push, and the scan will run automatically. Results will be written to `.fluidattacks-secret-scan-results.sarif` in your workspace. No configuration file is required.
 
 ## Prerequisites
 
@@ -51,38 +49,52 @@ The action automatically detects your repository's default branch by running `gi
 
 ### Scan types
 
-The action determines the scan type based on context:
+The action prefers differential scanning whenever a base is available, falling back to a full scan only when there is nothing to compare against:
 
-| Trigger | Scan type | What it analyzes |
+| Trigger | Scan type | Base for comparison |
 |---|---|---|
-| Push to default branch | Full scan | All files in the repository |
-| Push to any other branch | Differential scan | Only files changed vs. default branch |
-| Pull request | Differential scan | Only files changed vs. PR base branch |
+| Push to any branch | Differential scan | Commit before the push (`github.event.before`) |
+| Pull request | Differential scan | PR base branch |
+| Scheduled / manual trigger | Full scan | — |
 
-Both differential scan modes compare against the full default branch (not just the previous commit), so even if a push contains multiple commits, all changes relative to the default branch are analyzed. This keeps your CI fast while ensuring nothing slips through.
+You can force a full scan on every run with `scanner_mode: full` — see [Action inputs](#action-inputs).
 
 ### Why `fetch-depth: 0`?
 
-The `actions/checkout` step uses `fetch-depth: 0` to download the full git history. This is necessary for the differential scan to compare your current changes against the PR base. Without it, the action would not have enough context to determine what changed.
+The `actions/checkout` step uses `fetch-depth: 0` to download the full git history. This is required for differential scans: the action needs it to resolve the base commit and to detect your default branch via `git remote show origin`.
+
+If you force `scanner_mode: full`, the action skips all git comparisons entirely, so a default shallow checkout is sufficient — `fetch-depth: 0` is not needed.
 
 ## Viewing results
 
-After the workflow runs, you can see the results in two places:
+After the workflow runs, results are written to `.fluidattacks-secret-scan-results.sarif` (or whatever path you configured in `output.file_path`).
 
-1. **GitHub Security tab** — Go to your repository → **Security** → **Code scanning alerts**. Each secret is reported as a vulnerability, which means it appears as an alert with details, severity, and the exact file and line where it was found.
+### SARIF file
 
-2. **Pull request annotations** — On pull requests, the reports appear as inline annotations directly in the code diff, making them easy to review.
+The raw SARIF file is always available in your workspace. You can download it as an artifact, process it with other tools, or upload it to a third-party platform.
 
-3. **SARIF file** — The raw results are also available as a SARIF file artifact if you need to process them with other tools.
+### GitHub Security tab (optional)
+
+You can upload the SARIF file to GitHub's Security tab so findings appear as **Code scanning alerts** with inline PR annotations:
+
+```yaml
+- name: Upload results to GitHub Security tab
+  if: always()
+  uses: github/codeql-action/upload-sarif@v4
+  with:
+    sarif_file: ${{ steps.scan.outputs.sarif_file }}
+```
+
+> **Restrictions:** SARIF upload to the Security tab requires **GitHub Advanced Security**, which is available on all public repositories and on private repositories under a GitHub Advanced Security license. On private repositories without that license, the upload step will fail. See [GitHub's documentation](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/uploading-a-sarif-file-to-github) for details.
 
 ## Configuration
 
-The action optionally reads a `.fluidattacks.yaml` file at the root of your repository. Only the `sniffs` and `output` keys are used by this action.
+The action optionally reads a `.fluidattacks.yaml` file at the root of your repository. Only the `ss` and `output` keys are used by this action.
 
 ```yaml
-sniffs:
+ss:
   include:
-    - .          # paths to scan (default: entire repo)
+    - .          # paths to scan
   exclude:
     - tests/     # paths to skip
 
@@ -93,14 +105,14 @@ output:
 
 If `.fluidattacks.yaml` is absent or the keys are omitted, the action falls back to the defaults described below.
 
-### `sniffs.include`
+### `ss.include`
 
 A list of paths (files or directories) to scan.
 
 - **Full scan**: uses this list, defaulting to `.` (entire repository) if not set.
 - **Differential scan**: always uses the list of changed files, regardless of this setting.
 
-### `sniffs.exclude`
+### `ss.exclude`
 
 A list of paths to exclude from the scan. Applied in both full and differential modes.
 
@@ -112,6 +124,23 @@ Controls the results file written to the repository workspace.
 |---|---|---|
 | `file_path` | `.fluidattacks-secret-scan-results.sarif` | Path to the results file |
 | `format` | `SARIF` | Output format (`SARIF` or `CSV`) |
+
+## Action inputs
+
+| Input | Required | Default | Description |
+|---|---|---|---|
+| `scanner_mode` | No | _(auto)_ | Override the scan mode. `full` forces a full repository scan. If omitted, the mode is determined automatically based on the event and branch. |
+
+### `scanner_mode: full`
+
+Forces a full repository scan regardless of the event. Useful for scheduled audits or when you want every run to cover the entire codebase.
+
+```yaml
+- uses: fluidattacks/secret-scan-action@main
+  id: scan
+  with:
+    scanner_mode: full
+```
 
 ## Action outputs
 
@@ -135,7 +164,7 @@ You can use these outputs in subsequent workflow steps. For example:
 If your repository contains multiple projects, you can limit the scan to specific directories:
 
 ```yaml
-sniffs:
+ss:
   include:
     - services/api/
     - services/web/

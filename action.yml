@@ -6,6 +6,17 @@ branding:
   icon: 'shield'
   color: 'red'
 
+inputs:
+  scanner_mode:
+    description: >
+      Override the scan mode. Use "diff" to always run a differential scan
+      (changed files only) or "full" to always scan the entire repository.
+      If omitted, the mode is determined automatically: full scan on pushes
+      to the default branch, differential scan on pushes to other branches
+      and on pull requests.
+    required: false
+    default: ''
+
 outputs:
   sarif_file:
     description: 'Path to SARIF results file (if SARIF format selected)'
@@ -20,19 +31,11 @@ runs:
     - name: Resolve config and mode
       id: resolve
       shell: bash
-      run: |
-        DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | awk '{print $NF}')
-        CURRENT_BRANCH="${GITHUB_REF#refs/heads/}"
-
-        if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-          echo "mode=diff" >> "${GITHUB_OUTPUT}"
-          echo "base_sha=${{ github.event.pull_request.base.sha }}" >> "${GITHUB_OUTPUT}"
-        elif [[ "${CURRENT_BRANCH}" == "${DEFAULT_BRANCH}" ]]; then
-          echo "mode=full" >> "${GITHUB_OUTPUT}"
-        else
-          echo "mode=diff" >> "${GITHUB_OUTPUT}"
-          echo "base_sha=$(git rev-parse origin/${DEFAULT_BRANCH})" >> "${GITHUB_OUTPUT}"
-        fi
+      run: bash "${{ github.action_path }}/resolve-mode.sh"
+      env:
+        SCANNER_MODE: ${{ inputs.scanner_mode }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        GITHUB_BEFORE: ${{ github.event.before }}
 
     - name: Get changed files
       if: steps.resolve.outputs.mode == 'diff'

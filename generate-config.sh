@@ -28,29 +28,29 @@ if os.path.isfile(fa_config_path):
     print(f'::notice::Reading config from {fa_config_path}')
     with open(fa_config_path) as f:
         fa_cfg = yaml.safe_load(f) or {}
-    sniffs = fa_cfg.get('sniffs') or {}
-    if 'include' in sniffs:
-        cfg_include = sniffs['include']
-    if 'exclude' in sniffs:
-        cfg_exclude = sniffs['exclude']
+    ss = fa_cfg.get('ss') or {}
+    if 'include' in ss:
+        cfg_include = ss['include']
+    if 'exclude' in ss:
+        cfg_exclude = ss['exclude']
     if fa_cfg.get('output'):
         cfg_output = fa_cfg['output']
 else:
     print(f'::notice::No config file found at {fa_config_path}, using defaults')
 
 config = {'namespace': namespace}
-sniffs = {}
+ss = {}
 
 if mode == 'diff':
-    sniffs['include'] = os.environ['CHANGED_FILES'].splitlines()
+    ss['include'] = os.environ['CHANGED_FILES'].splitlines()
 elif cfg_include is not None:
-    sniffs['include'] = cfg_include
+    ss['include'] = cfg_include
 
 if cfg_exclude is not None:
-    sniffs['exclude'] = cfg_exclude
+    ss['exclude'] = cfg_exclude
 
-if sniffs:
-    config['sniffs'] = sniffs
+if ss:
+    config['ss'] = ss
 
 config['output'] = cfg_output
 
