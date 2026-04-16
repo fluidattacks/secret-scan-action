@@ -30,12 +30,6 @@ jobs:
 
       - uses: fluidattacks/secret-scan-action@main
         id: scan
-
-      - name: Upload results to GitHub Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif_file }}
 ```
 
 Commit the file, push, and the scan will run automatically. Results will appear in the **Security** tab of your repository under **Code scanning alerts**.
