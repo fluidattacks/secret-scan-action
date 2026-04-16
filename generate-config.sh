@@ -69,7 +69,7 @@ run_scan() {
     -v "${GITHUB_WORKSPACE}:/src" \
     -v "${CONFIG_FILE}:${CONFIG_FILE}:ro" \
     "ghcr.io/fluidattacks/ss:latest" \
-    secrets scan --config "${CONFIG_FILE}" || exit_code=$?
+    ss scan --config "${CONFIG_FILE}" || exit_code=$?
 
   if [[ ${exit_code} -eq 0 ]]; then
     echo "vulnerabilities_found=false" >> "${GITHUB_OUTPUT}"
