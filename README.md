@@ -5,7 +5,7 @@ No account, API key, or registration required.
 
 ## Quick Start (2 minutes)
 
-### Create the GitHub Actions workflow
+### 1. Create the GitHub Actions workflow
 
 Add the file `.github/workflows/fa-secrets.yml` to your repository:
 
@@ -28,11 +28,26 @@ jobs:
           # Can be omitted if scanner_mode: full is set.
           fetch-depth: 0
 
-      - uses: fluidattacks/secret-scan-action@main
+      - uses: fluidattacks/secret-scan-action@<version>
         id: scan
 ```
 
-Commit the file, push, and the scan will run automatically. Results will be written to `.fluidattacks-secret-scan-results.sarif` in your workspace. No configuration file is required.
+Replace `<version>` with the latest release tag. Without a configuration file, the action scans the entire repository and writes results to `.fluidattacks-secret-scan-results.sarif`.
+
+### 2. (Optional) Add a configuration file
+
+To customize scan paths or output format, create a YAML file anywhere in your repository and pass its path to the action:
+
+```yaml
+- uses: fluidattacks/secret-scan-action@<version>
+  id: scan
+  with:
+    scan_config_path: .github/secret-scan-config.yaml
+```
+
+See [Configuration](#configuration) for the full list of options.
+
+Commit and push. The scan will run automatically on the next push or pull request.
 
 ## Prerequisites
 
@@ -67,7 +82,7 @@ If you force `scanner_mode: full`, the action skips all git comparisons entirely
 
 ## Viewing results
 
-After the workflow runs, results are written to `.fluidattacks-secret-scan-results.sarif` (or whatever path you configured in `output.file_path`).
+After the workflow runs, results are written to the path configured in `output.file_path`, or to `.fluidattacks-secret-scan-results.sarif` when no configuration file is provided.
 
 ### SARIF file
 
@@ -89,7 +104,9 @@ You can upload the SARIF file to GitHub's Security tab so findings appear as **C
 
 ## Configuration
 
-The action optionally reads a `.fluidattacks.yaml` file at the root of your repository. Only the `ss` and `output` keys are used by this action.
+When `scan_config_path` is provided, the action uses that file exclusively. When omitted, the action runs with built-in defaults: scans the entire repository and writes results to `.fluidattacks-secret-scan-results.sarif`.
+
+Only the `ss` and `output` keys are used by this action.
 
 ```yaml
 ss:
@@ -102,8 +119,6 @@ output:
   file_path: .fluidattacks-secret-scan-results.sarif
   format: SARIF
 ```
-
-If `.fluidattacks.yaml` is absent or the keys are omitted, the action falls back to the defaults described below.
 
 ### `ss.include`
 
@@ -129,14 +144,28 @@ Controls the results file written to the repository workspace.
 
 | Input | Required | Default | Description |
 |---|---|---|---|
+| `scan_config_path` | No | — | Path to the YAML configuration file, relative to the repository root. When omitted, the action runs with built-in defaults. The job fails if the file does not exist at the given path. |
 | `scanner_mode` | No | _(auto)_ | Override the scan mode. `full` forces a full repository scan. If omitted, the mode is determined automatically based on the event and branch. |
+
+### `scan_config_path`
+
+Point the action at your configuration file:
+
+```yaml
+- uses: fluidattacks/secret-scan-action@<version>
+  id: scan
+  with:
+    scan_config_path: .github/secret-scan-config.yaml
+```
+
+The path is relative to the repository root. The job fails immediately if the file does not exist.
 
 ### `scanner_mode: full`
 
 Forces a full repository scan regardless of the event. Useful for scheduled audits or when you want every run to cover the entire codebase.
 
 ```yaml
-- uses: fluidattacks/secret-scan-action@main
+- uses: fluidattacks/secret-scan-action@<version>
   id: scan
   with:
     scanner_mode: full
@@ -160,8 +189,6 @@ You can use these outputs in subsequent workflow steps. For example:
 ## Common scenarios
 
 ### Monorepo: scan only specific folders
-
-If your repository contains multiple projects, you can limit the scan to specific directories:
 
 ```yaml
 ss:
@@ -193,6 +220,10 @@ Verify that `fetch-depth: 0` is set in the `actions/checkout` step. Without full
 ### The action doesn't detect my default branch
 
 The action runs `git remote show origin` to detect the default branch. This requires `fetch-depth: 0` in the checkout step so the remote metadata is available. If detection fails, verify that the `origin` remote is correctly configured in your repository.
+
+### The job fails with "not found in repository"
+
+The path provided to `scan_config_path` does not exist in the repository. Verify the path is correct and relative to the repository root.
 
 ## More information
 

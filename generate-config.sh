@@ -2,7 +2,6 @@
 set -euo pipefail
 
 CONFIG_FILE="/tmp/secret-scanner-config.yaml"
-export FA_CONFIG="${GITHUB_WORKSPACE}/.fluidattacks.yaml"
 
 check_changed_files() {
   if [[ ${INPUT_MODE} == "diff" && -z "${CHANGED_FILES}" ]]; then
@@ -16,7 +15,7 @@ prepare_config() {
   python3 -c "
 import yaml, os
 
-fa_config_path = os.environ.get('FA_CONFIG', '')
+fa_config_path = os.environ.get('USER_CONFIG_FILE', '')
 mode = os.environ['INPUT_MODE']
 namespace = os.environ['GITHUB_REPOSITORY']
 

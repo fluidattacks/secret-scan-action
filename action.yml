@@ -7,6 +7,13 @@ branding:
   color: 'red'
 
 inputs:
+  scan_config_path:
+    description: >
+      Path to the YAML configuration file, relative to the repository root.
+      When not provided, the action runs with built-in defaults.
+      The job fails if the file does not exist at the given path.
+    required: false
+    default: ''
   scanner_mode:
     description: >
       Override the scan mode. Use "diff" to always run a differential scan
@@ -33,6 +40,7 @@ runs:
       shell: bash
       run: bash "${{ github.action_path }}/resolve-mode.sh"
       env:
+        SCAN_CONFIG_PATH: ${{ inputs.scan_config_path }}
         SCANNER_MODE: ${{ inputs.scanner_mode }}
         PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         GITHUB_BEFORE: ${{ github.event.before }}
@@ -53,3 +61,4 @@ runs:
       env:
         INPUT_MODE: ${{ steps.resolve.outputs.mode }}
         CHANGED_FILES: ${{ steps.changed.outputs.all_changed_files }}
+        USER_CONFIG_FILE: ${{ steps.resolve.outputs.config_file }}
