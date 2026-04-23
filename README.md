@@ -1,4 +1,4 @@
-# Fluid Attacks Secrets Scan
+# Fluid Attacks SS
 
 Free, open-source action to search for hardcoded secrets on your GitHub repositories.
 No account, API key, or registration required.
