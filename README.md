@@ -28,7 +28,7 @@ jobs:
           # Can be omitted if scanner_mode: full is set.
           fetch-depth: 0
 
-      - uses: fluidattacks/secret-scan-action@<version>
+      - uses: fluidattacks/ss-action@<version>
         id: scan
 ```
 
@@ -39,7 +39,7 @@ Replace `<version>` with the latest release tag. Without a configuration file, t
 To customize scan paths or output format, create a YAML file anywhere in your repository and pass its path to the action:
 
 ```yaml
-- uses: fluidattacks/secret-scan-action@<version>
+- uses: fluidattacks/ss-action@<version>
   id: scan
   with:
     scan_config_path: .github/secret-scan-config.yaml
@@ -152,7 +152,7 @@ Controls the results file written to the repository workspace.
 Point the action at your configuration file:
 
 ```yaml
-- uses: fluidattacks/secret-scan-action@<version>
+- uses: fluidattacks/ss-action@<version>
   id: scan
   with:
     scan_config_path: .github/secret-scan-config.yaml
@@ -165,7 +165,7 @@ The path is relative to the repository root. The job fails immediately if the fi
 Forces a full repository scan regardless of the event. Useful for scheduled audits or when you want every run to cover the entire codebase.
 
 ```yaml
-- uses: fluidattacks/secret-scan-action@<version>
+- uses: fluidattacks/ss-action@<version>
   id: scan
   with:
     scanner_mode: full
@@ -227,7 +227,7 @@ The path provided to `scan_config_path` does not exist in the repository. Verify
 
 ## More information
 
-- [Source code on GitHub](https://github.com/fluidattacks/secret-scan-action)
+- [Source code on GitHub](https://github.com/fluidattacks/ss-action)
 - [Vulnerability database](https://db.fluidattacks.com)
 - [Fluid Attacks documentation](https://docs.fluidattacks.com)
 - [SARIF format specification](https://sarifweb.azurewebsites.net/)
