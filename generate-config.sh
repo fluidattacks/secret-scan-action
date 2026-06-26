@@ -12,50 +12,40 @@ check_changed_files() {
 }
 
 prepare_config() {
-  python3 -c "
+  if [[ -n "${USER_CONFIG_FILE:-}" ]]; then
+    python3 -c "
 import yaml, os
 
-fa_config_path = os.environ.get('USER_CONFIG_FILE', '')
-mode = os.environ['INPUT_MODE']
-namespace = os.environ['GITHUB_REPOSITORY']
+with open(os.environ['USER_CONFIG_FILE']) as f:
+    cfg = yaml.safe_load(f) or {}
 
-cfg_include = ['.']
-cfg_exclude = None
-cfg_output = {'format': 'SARIF', 'file_path': '.fluidattacks-secret-scan-results.sarif'}
-
-if os.path.isfile(fa_config_path):
-    print(f'::notice::Reading config from {fa_config_path}')
-    with open(fa_config_path) as f:
-        fa_cfg = yaml.safe_load(f) or {}
-    ss = fa_cfg.get('ss') or {}
-    if 'include' in ss:
-        cfg_include = ss['include']
-    if 'exclude' in ss:
-        cfg_exclude = ss['exclude']
-    if fa_cfg.get('output'):
-        cfg_output = fa_cfg['output']
-else:
-    print(f'::notice::No config file found at {fa_config_path}, using defaults')
-
-config = {'namespace': namespace}
-ss = {}
-
-if mode == 'diff':
-    ss['include'] = os.environ['CHANGED_FILES'].splitlines()
-elif cfg_include is not None:
-    ss['include'] = cfg_include
-
-if cfg_exclude is not None:
-    ss['exclude'] = cfg_exclude
-
-if ss:
-    config['ss'] = ss
-
-config['output'] = cfg_output
+cfg['namespace'] = os.environ['GITHUB_REPOSITORY']
+if os.environ['INPUT_MODE'] == 'diff':
+    cfg['ss'] = cfg.get('ss') or {}
+    cfg['ss']['include'] = os.environ['CHANGED_FILES'].splitlines()
 
 with open('${CONFIG_FILE}', 'w') as f:
-    yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+    yaml.dump(cfg, f, default_flow_style=False, sort_keys=False)
 "
+  else
+    python3 -c "
+import yaml, os
+
+cfg = {}
+cfg['namespace'] = os.environ['GITHUB_REPOSITORY']
+cfg['ss'] = {
+    'include': os.environ['CHANGED_FILES'].splitlines() if os.environ['INPUT_MODE'] == 'diff'
+               else ['.'],
+}
+cfg['output'] = {
+    'format': 'SARIF',
+    'file_path': '.fluidattacks-secret-scan-results.sarif',
+}
+
+with open('${CONFIG_FILE}', 'w') as f:
+    yaml.dump(cfg, f, default_flow_style=False, sort_keys=False)
+"
+  fi
 }
 
 run_scan() {
